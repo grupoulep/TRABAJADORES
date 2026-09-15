@@ -91,7 +91,7 @@ export const LoginForm: React.FC<Props> = ({ volunteers, onLoginSuccess }) => {
             </div>
           )}
 
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          <form action="#" method="post" className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
                 Usuario

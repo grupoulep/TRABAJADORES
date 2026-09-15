@@ -285,7 +285,7 @@ export const VolunteerModal: React.FC<Props> = ({
         </div>
 
         {/* Modal Body / Form */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6 text-slate-800">
+        <form action="#" method="post" onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6 text-slate-800">
           {/* Validation Notice if any */}
           {dateError && (
             <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2.5 text-rose-800 text-xs font-semibold">

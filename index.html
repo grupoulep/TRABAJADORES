@@ -4,25 +4,31 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Seguridad y Forzado de Conexión Segura HTTPS (SSL/TLS) -->
-    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
+    <!-- 1. Redirección forzada inmediata a HTTPS seguro SSL/TLS antes de cargar recursos -->
+    <script>
+      (function () {
+        var l = window.location;
+        if (
+          l.protocol === 'http:' &&
+          l.hostname !== 'localhost' &&
+          l.hostname !== '127.0.0.1' &&
+          !l.hostname.endsWith('.internal')
+        ) {
+          l.replace('https://' + l.host + l.pathname + l.search + l.hash);
+        }
+      })();
+    </script>
+
+    <!-- 2. Políticas de Seguridad de Contenido (CSP) y Encabezados de Protección -->
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; connect-src 'self' https: wss:;" />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-
-    <script>
-      // Redirección forzada automática a HTTPS seguro
-      if (
-        window.location.protocol === 'http:' &&
-        window.location.hostname !== 'localhost' &&
-        window.location.hostname !== '127.0.0.1' &&
-        !window.location.hostname.endsWith('.internal')
-      ) {
-        window.location.replace('https:' + window.location.href.substring(window.location.protocol.length));
-      }
-    </script>
+    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()" />
+    <meta name="theme-color" content="#2563eb" />
 
     <title>Portal de Voluntariado</title>
     <link rel="icon" type="image/png" href="./LOGO.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
     <meta name="description" content="Portal de la FUNDACIÓN ULEP (NIT 902050377-7). Sistema de consulta, registro y emisión de certificados de experiencia y laborales en Popayán, Cauca." />
     <meta property="og:title" content="Portal de Voluntariado" />
     <meta property="og:description" content="Portal de la FUNDACIÓN ULEP (NIT 902050377-7). Sistema de consulta, registro y emisión de certificados de experiencia y laborales en Popayán, Cauca." />
