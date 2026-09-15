@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Volunteer, AuthUser } from '../types';
 import { Lock, User, ShieldCheck, HeartHandshake, ArrowRight, KeyRound, AlertCircle } from 'lucide-react';
+import logoImg from '../assets/LOGO.png';
 
 interface Props {
   volunteers: Volunteer[];
@@ -60,10 +61,15 @@ export const LoginForm: React.FC<Props> = ({ volunteers, onLoginSuccess }) => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <div className="inline-flex items-center justify-center w-40 h-40 sm:w-48 sm:h-48 mb-3 p-1">
           <img
-            src="/LOGO.png"
-            alt="Logo"
+            src={logoImg}
+            alt="Logo Fundación ULEP"
             className="w-full h-full object-contain border-0"
             onError={(e) => {
+              // Try fallback to public directory with relative path
+              if (e.currentTarget.src !== `${window.location.origin}${import.meta.env.BASE_URL}LOGO.png`) {
+                e.currentTarget.src = `${import.meta.env.BASE_URL}LOGO.png`;
+                return;
+              }
               e.currentTarget.style.display = 'none';
               const fallback = e.currentTarget.nextElementSibling as HTMLElement;
               if (fallback) fallback.style.display = 'flex';

@@ -4,6 +4,7 @@ import { VolunteerModal } from './VolunteerModal';
 import { ExperienceCertificate } from './ExperienceCertificate';
 import { ExcelUploadModal } from './ExcelUploadModal';
 import { SecurityVaultModal } from './SecurityVaultModal';
+import logoImg from '../assets/LOGO.png';
 import {
   downloadExcelTemplate,
   exportVolunteersToExcel,
@@ -183,10 +184,14 @@ export const AdminDashboard: React.FC<Props> = ({
           <div className="flex items-center gap-3">
             <div className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center">
               <img
-                src="/LOGO.png"
-                alt="Logo"
+                src={logoImg}
+                alt="Logo Fundación ULEP"
                 className="w-full h-full object-contain border-0"
                 onError={(e) => {
+                  if (e.currentTarget.src !== `${window.location.origin}${import.meta.env.BASE_URL}LOGO.png`) {
+                    e.currentTarget.src = `${import.meta.env.BASE_URL}LOGO.png`;
+                    return;
+                  }
                   e.currentTarget.style.display = 'none';
                   const fallback = e.currentTarget.nextElementSibling as HTMLElement;
                   if (fallback) fallback.style.display = 'flex';

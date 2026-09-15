@@ -5,6 +5,8 @@ import html2canvas from 'html2canvas-pro';
 import { jsPDF } from 'jspdf';
 import { getFormalDateParts, cleanActualidadDate } from '../utils/dateUtils';
 import { encryptBinaryFile, triggerFileDownload, computeSHA256 } from '../utils/cryptoUtils';
+import logoImg from '../assets/LOGO.png';
+import firmaImg from '../assets/FIRMA.png';
 
 interface Props {
   volunteer: Volunteer;
@@ -308,10 +310,14 @@ Código de Verificación: ${volunteer.certificateCode}`;
           <div className="flex justify-center mb-4">
             <div className="w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center">
               <img
-                src="/LOGO.png"
-                alt="Logo Institucional"
+                src={logoImg}
+                alt="Logo Institucional Fundación ULEP"
                 className="w-full h-full object-contain border-0"
                 onError={(e) => {
+                  if (e.currentTarget.src !== `${window.location.origin}${import.meta.env.BASE_URL}LOGO.png`) {
+                    e.currentTarget.src = `${import.meta.env.BASE_URL}LOGO.png`;
+                    return;
+                  }
                   e.currentTarget.style.display = 'none';
                   const fallback = e.currentTarget.nextElementSibling as HTMLElement;
                   if (fallback) fallback.style.display = 'flex';
@@ -435,11 +441,14 @@ Código de Verificación: ${volunteer.certificateCode}`;
               {/* Signature Line */}
               <div className="w-[301px] max-w-full border-b border-slate-800 pb-1 mb-2 relative flex flex-col items-center justify-end">
                 <img
-                  src="/FIRMA.png"
+                  src={firmaImg}
                   alt="Firma Jerson Stive López Rengifo"
                   className="h-28 sm:h-36 w-auto max-w-[300px] object-contain mx-auto -mb-6 relative z-10 mix-blend-multiply select-none pointer-events-none"
                   onError={(e) => {
-                    // Fallback to text if image fails to load
+                    if (e.currentTarget.src !== `${window.location.origin}${import.meta.env.BASE_URL}FIRMA.png`) {
+                      e.currentTarget.src = `${import.meta.env.BASE_URL}FIRMA.png`;
+                      return;
+                    }
                     e.currentTarget.style.display = 'none';
                     const fallback = e.currentTarget.nextElementSibling as HTMLElement;
                     if (fallback) fallback.style.display = 'block';
