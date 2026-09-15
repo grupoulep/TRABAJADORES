@@ -39,6 +39,7 @@ export interface Volunteer {
   emergencyContactPhone?: string; // Contacto de emergencia (Teléfono)
   birthDate?: string; // Fecha de nacimiento
   gender?: string; // Género (Femenino / Masculino / Otro)
+  cloudSpaceUrl?: string; // URL del Espacio en la Nube configurado por el Administrador
 }
 
 export interface AuthUser {

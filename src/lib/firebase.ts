@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
+  initializeFirestore,
   getFirestore,
   collection,
   doc,
@@ -30,10 +31,23 @@ export const firebaseConfig = {
 // Initialize Firebase App singleton
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Firestore with custom database ID if provisioned
-export const db: Firestore = firebaseConfig.firestoreDatabaseId
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
-  : getFirestore(app);
+// Initialize Firestore with custom database ID and auto-detect long polling for robust cloud connectivity
+let firestoreInstance: Firestore;
+try {
+  firestoreInstance = initializeFirestore(
+    app,
+    {
+      experimentalAutoDetectLongPolling: true,
+    },
+    firebaseConfig.firestoreDatabaseId || undefined
+  );
+} catch {
+  firestoreInstance = firebaseConfig.firestoreDatabaseId
+    ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+    : getFirestore(app);
+}
+
+export const db: Firestore = firestoreInstance;
 
 const VOLUNTEERS_COLLECTION = 'volunteers';
 
@@ -78,12 +92,18 @@ export async function encryptedDocToVolunteer(raw: Record<string, unknown>): Pro
  */
 export async function testFirebaseConnection(): Promise<boolean> {
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
+    const testDocRef = doc(db, 'test', 'connection');
+    const checkPromise = getDocFromServer(testDocRef);
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Connection check timeout - using resilient mode')), 3500)
+    );
+    await Promise.race([checkPromise, timeoutPromise]);
     console.log('Firebase Firestore connection verified.');
     return true;
   } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('Firebase connection: client appears offline.', error);
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes('offline') || msg.includes('unavailable') || msg.includes('timeout')) {
+      console.info('Firestore operating in resilient offline/online synchronization mode.');
     } else {
       console.log('Firebase connection ready.');
     }

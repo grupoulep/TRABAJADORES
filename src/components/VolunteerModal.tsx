@@ -14,6 +14,7 @@ import {
   HeartPulse,
   PhoneCall,
   Activity,
+  Cloud,
 } from 'lucide-react';
 import { generateNextSequentialCode } from '../utils/codeGenerator';
 import { isoToSpanishDate, spanishDateToIso } from '../utils/dateUtils';
@@ -100,6 +101,7 @@ export const VolunteerModal: React.FC<Props> = ({
         emergencyContactPhone: initialVolunteer.emergencyContactPhone || '',
         birthDate: initialVolunteer.birthDate || '',
         gender: initialVolunteer.gender || 'Femenino',
+        cloudSpaceUrl: initialVolunteer.cloudSpaceUrl || '',
       });
     } else {
       const nextCode = generateNextSequentialCode(existingVolunteers);
@@ -140,6 +142,7 @@ export const VolunteerModal: React.FC<Props> = ({
         emergencyContactPhone: '',
         birthDate: '',
         gender: 'Femenino',
+        cloudSpaceUrl: '',
       });
     }
     setDateError(null);
@@ -932,6 +935,30 @@ export const VolunteerModal: React.FC<Props> = ({
                   placeholder="Contraseña (ej. 123)"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Section 9: Espacio en la Nube */}
+          <div className="space-y-3 p-4 bg-sky-50/70 rounded-2xl border border-sky-200/90">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-950 pb-1.5 border-b border-sky-200">
+              <Cloud className="w-4 h-4 text-blue-700" />
+              <span>9. Espacio en la Nube (URL de Acceso para el Colaborador)</span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                URL / Enlace del Espacio en la Nube
+              </label>
+              <input
+                type="url"
+                value={formData.cloudSpaceUrl || ''}
+                onChange={(e) => setFormData({ ...formData, cloudSpaceUrl: e.target.value })}
+                className="w-full px-3.5 py-2.5 text-sm bg-white border border-sky-300 rounded-xl focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 focus:outline-hidden text-slate-900 transition-all font-mono text-xs"
+                placeholder="https://drive.google.com/drive/folders/... o enlace institucional"
+              />
+              <p className="text-[11px] text-slate-500 mt-1.5 leading-normal">
+                Esta dirección URL se abrirá cuando el colaborador presione el botón <strong className="text-blue-900">"Espacio en la Nube"</strong> en su panel personal. Puede vincular carpetas en Google Drive, OneDrive, Dropbox o nube privada.
+              </p>
             </div>
           </div>
 

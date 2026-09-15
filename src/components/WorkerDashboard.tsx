@@ -9,6 +9,10 @@ import {
   Mail,
   MapPin,
   LogOut,
+  Cloud,
+  ExternalLink,
+  AlertCircle,
+  X,
 } from 'lucide-react';
 
 interface Props {
@@ -18,6 +22,34 @@ interface Props {
 
 export const WorkerDashboard: React.FC<Props> = ({ volunteer, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'certificate'>('profile');
+  const [showNoUrlModal, setShowNoUrlModal] = useState(false);
+
+  const getEffectiveCloudUrl = () => {
+    if (volunteer.cloudSpaceUrl && volunteer.cloudSpaceUrl.trim()) {
+      return volunteer.cloudSpaceUrl.trim();
+    }
+    try {
+      const globalUrl = localStorage.getItem('ulep_global_cloud_space_url');
+      if (globalUrl && globalUrl.trim()) {
+        return globalUrl.trim();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return '';
+  };
+
+  const handleOpenCloudSpace = () => {
+    const rawUrl = getEffectiveCloudUrl();
+    if (!rawUrl) {
+      setShowNoUrlModal(true);
+      return;
+    }
+    const finalUrl = rawUrl.startsWith('http://') || rawUrl.startsWith('https://')
+      ? rawUrl
+      : `https://${rawUrl}`;
+    window.open(finalUrl, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <div className="min-h-screen pb-16">
@@ -46,14 +78,26 @@ export const WorkerDashboard: React.FC<Props> = ({ volunteer, onLogout }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* Botón Espacio en la Nube */}
+            <button
+              type="button"
+              onClick={handleOpenCloudSpace}
+              className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-blue-600 via-sky-600 to-blue-700 hover:from-blue-700 hover:via-sky-700 hover:to-blue-800 rounded-xl shadow-md shadow-blue-600/20 transition-all cursor-pointer hover:scale-102"
+              title="Acceder al Espacio en la Nube"
+            >
+              <Cloud className="w-4 h-4 text-sky-200" />
+              <span>Espacio en la Nube</span>
+              <ExternalLink className="w-3.5 h-3.5 text-sky-200 shrink-0" />
+            </button>
+
             <button
               type="button"
               onClick={onLogout}
               className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:text-blue-900 bg-white/80 hover:bg-sky-50/80 rounded-xl border border-sky-200/80 transition-all cursor-pointer shadow-2xs"
             >
               <LogOut className="w-4 h-4 text-sky-700" />
-              <span>Cerrar Sesión</span>
+              <span className="hidden sm:inline">Cerrar Sesión</span>
             </button>
           </div>
         </div>
@@ -61,6 +105,36 @@ export const WorkerDashboard: React.FC<Props> = ({ volunteer, onLogout }) => {
 
       {/* Main Container */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-6">
+        {/* Banner destacado: Espacio en la Nube */}
+        <div className="bg-gradient-to-r from-blue-900 via-sky-900 to-slate-900 rounded-3xl p-5 sm:p-6 text-white shadow-lg shadow-blue-950/15 border border-sky-400/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-sky-500/20 border border-sky-300/30 flex items-center justify-center text-sky-300 shrink-0 shadow-inner">
+              <Cloud className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base sm:text-lg font-bold text-white">Espacio en la Nube</h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-400/20 text-sky-200 border border-sky-400/30">
+                  Acceso Oficial
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-sky-100/85 mt-0.5 max-w-xl">
+                Acceda a su carpeta en la nube con documentos, actas, archivos de trabajo y recursos asignados por la administración.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleOpenCloudSpace}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-blue-950 hover:bg-sky-50 text-xs sm:text-sm font-extrabold rounded-xl shadow-md shadow-black/10 transition-all cursor-pointer hover:scale-102 shrink-0"
+          >
+            <Cloud className="w-4 h-4 text-blue-700" />
+            <span>Espacio en la Nube</span>
+            <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+          </button>
+        </div>
+
         {/* Navigation Tabs with Soft Crystalline Borders */}
         <div className="flex border border-sky-200/70 bg-white/80 backdrop-blur-md rounded-2xl p-1.5 shadow-sm shadow-blue-900/5 gap-2">
           <button
@@ -344,6 +418,37 @@ export const WorkerDashboard: React.FC<Props> = ({ volunteer, onLogout }) => {
           </div>
         )}
       </main>
+
+      {/* Modal Informativo: Espacio en la Nube no configurado */}
+      {showNoUrlModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-sky-200 text-center space-y-4">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-sky-100 flex items-center justify-center text-blue-700">
+              <Cloud className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-lg font-extrabold text-slate-900">
+                Espacio en la Nube
+              </h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                El administrador aún no ha configurado la dirección URL para su carpeta o espacio de almacenamiento institucional.
+              </p>
+              <p className="text-xs text-sky-800 font-semibold bg-sky-50 p-2.5 rounded-xl border border-sky-200/80">
+                Por favor comuníquese con la administración institucional para que le asigne su enlace de acceso corporativo.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowNoUrlModal(false)}
+              className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-sky-600 text-white text-sm font-bold rounded-xl hover:from-blue-700 hover:to-sky-700 transition-all cursor-pointer shadow-md shadow-blue-600/20"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

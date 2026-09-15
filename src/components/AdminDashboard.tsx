@@ -4,6 +4,7 @@ import { VolunteerModal } from './VolunteerModal';
 import { ExperienceCertificate } from './ExperienceCertificate';
 import { ExcelUploadModal } from './ExcelUploadModal';
 import { SecurityVaultModal } from './SecurityVaultModal';
+import { CloudSpaceSettingsModal } from './CloudSpaceSettingsModal';
 import logoImg from '../assets/LOGO.png';
 import {
   downloadExcelTemplate,
@@ -39,6 +40,7 @@ import {
   Cloud,
   Lock,
   Database,
+  ExternalLink,
 } from 'lucide-react';
 
 interface Props {
@@ -61,6 +63,7 @@ export const AdminDashboard: React.FC<Props> = ({
   const [editingVolunteer, setEditingVolunteer] = useState<Volunteer | null>(null);
   const [viewingCertVolunteer, setViewingCertVolunteer] = useState<Volunteer | null>(null);
   const [viewingProfileVolunteer, setViewingProfileVolunteer] = useState<Volunteer | null>(null);
+  const [isCloudSettingsModalOpen, setIsCloudSettingsModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -242,6 +245,17 @@ export const AdminDashboard: React.FC<Props> = ({
               </span>
             </button>
 
+            {/* Configurar Espacio en la Nube */}
+            <button
+              type="button"
+              onClick={() => setIsCloudSettingsModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-950 bg-sky-50 hover:bg-sky-100/90 border border-sky-300/90 rounded-xl transition-all cursor-pointer shadow-2xs"
+              title="Configurar URL del Espacio en la Nube de los Colaboradores"
+            >
+              <Cloud className="w-4 h-4 text-blue-700" />
+              <span className="hidden md:inline">Espacio en la Nube</span>
+            </button>
+
             <button
               type="button"
               onClick={onLogout}
@@ -315,6 +329,17 @@ export const AdminDashboard: React.FC<Props> = ({
               >
                 <Lock className="w-4 h-4 text-emerald-200" />
                 <span>Excel Seguro (.ulepenc)</span>
+              </button>
+
+              {/* Botón 5: Gestionar Espacio en la Nube */}
+              <button
+                type="button"
+                onClick={() => setIsCloudSettingsModalOpen(true)}
+                title="Configurar y vincular carpetas en la nube para los colaboradores"
+                className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-sky-50 hover:bg-sky-100/90 text-blue-950 border border-sky-300 text-xs sm:text-sm font-bold rounded-2xl shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+              >
+                <Cloud className="w-4 h-4 text-blue-700" />
+                <span>Espacio en la Nube</span>
               </button>
 
               {/* Botón Adicional: Registrar Individual */}
@@ -451,6 +476,22 @@ export const AdminDashboard: React.FC<Props> = ({
                             className="p-2 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-sky-50 bg-white/80 border border-sky-200/80 transition-all cursor-pointer shadow-2xs hover:scale-105"
                           >
                             <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsCloudSettingsModalOpen(true)}
+                            title={
+                              vol.cloudSpaceUrl
+                                ? `Espacio en la Nube configurado: ${vol.cloudSpaceUrl}`
+                                : 'Configurar Espacio en la Nube para este colaborador'
+                            }
+                            className={`p-2 rounded-xl transition-all cursor-pointer shadow-2xs hover:scale-105 border ${
+                              vol.cloudSpaceUrl
+                                ? 'text-blue-700 hover:bg-blue-50 bg-sky-50/80 border-sky-300'
+                                : 'text-slate-400 hover:text-blue-700 hover:bg-sky-50 bg-white/80 border-slate-200'
+                            }`}
+                          >
+                            <Cloud className="w-4 h-4" />
                           </button>
                           <button
                             type="button"
@@ -601,6 +642,25 @@ export const AdminDashboard: React.FC<Props> = ({
                 <p className="text-xs text-slate-600">
                   Código de Certificado: <span className="font-mono font-bold text-blue-900">{viewingProfileVolunteer.certificateCode}</span>
                 </p>
+                <div className="pt-2 border-t border-sky-200/80 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-sky-950 block">Espacio en la Nube:</span>
+                    <span className="text-xs text-slate-600 font-mono">
+                      {viewingProfileVolunteer.cloudSpaceUrl || 'Usa la dirección global institucional'}
+                    </span>
+                  </div>
+                  {viewingProfileVolunteer.cloudSpaceUrl && (
+                    <a
+                      href={viewingProfileVolunteer.cloudSpaceUrl.startsWith('http') ? viewingProfileVolunteer.cloudSpaceUrl : `https://${viewingProfileVolunteer.cloudSpaceUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-sky-100 hover:bg-sky-200 text-blue-900 rounded-lg text-xs font-semibold"
+                    >
+                      <span>Abrir</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-2">
@@ -643,6 +703,15 @@ export const AdminDashboard: React.FC<Props> = ({
         onClose={() => setIsVaultModalOpen(false)}
         volunteers={volunteers}
         isFirebaseConnected={isFirebaseConnected}
+      />
+
+      {/* Cloud Space Settings Modal */}
+      <CloudSpaceSettingsModal
+        isOpen={isCloudSettingsModalOpen}
+        onClose={() => setIsCloudSettingsModalOpen(false)}
+        volunteers={volunteers}
+        onUpdateVolunteer={handleSaveVolunteer}
+        onShowToast={showToast}
       />
     </div>
   );

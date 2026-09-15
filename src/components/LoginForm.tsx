@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Volunteer, AuthUser } from '../types';
-import { Lock, User, ShieldCheck, HeartHandshake, ArrowRight, KeyRound, AlertCircle } from 'lucide-react';
+import { Lock, User, HeartHandshake, ArrowRight, KeyRound, AlertCircle, Cookie, Building2 } from 'lucide-react';
 import logoImg from '../assets/LOGO.png';
 
 interface Props {
@@ -11,20 +11,48 @@ interface Props {
 export const LoginForm: React.FC<Props> = ({ volunteers, onLoginSuccess }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [acceptCookiesAndCorporateUse, setAcceptCookiesAndCorporateUse] = useState(() => {
+    try {
+      const stored = localStorage.getItem('ulep_cookie_corporate_consent');
+      return stored ? true : true; // Default to true for convenience
+    } catch {
+      return true;
+    }
+  });
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
+    if (!acceptCookiesAndCorporateUse) {
+      setError('Debe aceptar el uso de cookies y autorizar la presentación de información con fines de la empresa para continuar.');
+      return;
+    }
+
+    // Persist acceptance
+    try {
+      localStorage.setItem('ulep_cookie_corporate_consent', JSON.stringify({
+        accepted: true,
+        essentialCookies: true,
+        corporateDataProcessing: true,
+        dateAccepted: new Date().toISOString()
+      }));
+    } catch (err) {
+      console.error(err);
+    }
+
     const trimmedUser = username.trim().toLowerCase();
     const trimmedPass = password.trim();
 
-    // Check Admin
-    if (trimmedUser === 'admin' && (trimmedPass === '123' || trimmedPass === 'admin123')) {
+    // Check Admin (ADMINIULEP)
+    const isAdminUser = trimmedUser === 'adminiulep' || trimmedUser === 'admin';
+    const isAdminPass = trimmedPass.toUpperCase() === 'ADMINIULEP';
+
+    if (isAdminUser && isAdminPass) {
       onLoginSuccess({
         id: 'admin-1',
-        username: 'admin',
+        username: 'ADMINIULEP',
         role: 'admin',
       });
       return;
@@ -34,7 +62,7 @@ export const LoginForm: React.FC<Props> = ({ volunteers, onLoginSuccess }) => {
     const matchedVolunteer = volunteers.find(
       (v) =>
         v.username.toLowerCase() === trimmedUser &&
-        (v.password === trimmedPass || trimmedPass === '123')
+        (v.password ? v.password === trimmedPass : trimmedPass === '123')
     );
 
     if (matchedVolunteer) {
@@ -47,13 +75,7 @@ export const LoginForm: React.FC<Props> = ({ volunteers, onLoginSuccess }) => {
       return;
     }
 
-    setError('Usuario o contraseña incorrectos. Verifique los datos o use los accesos de prueba.');
-  };
-
-  const handleQuickLogin = (user: string, pass: string) => {
-    setUsername(user);
-    setPassword(pass);
-    setError(null);
+    setError('Usuario o contraseña incorrectos. Por favor verifique sus credenciales de acceso institucional.');
   };
 
   return (
@@ -106,7 +128,7 @@ export const LoginForm: React.FC<Props> = ({ volunteers, onLoginSuccess }) => {
                   autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Ej. admin o camila.rodriguez"
+                  placeholder="Ej. ADMINIULEP o camila.rodriguez"
                   className="block w-full pl-10 pr-3.5 py-2.5 text-sm bg-white/75 border border-sky-200/80 rounded-xl focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 focus:outline-hidden transition-all placeholder:text-slate-400 text-slate-900"
                 />
               </div>
@@ -132,6 +154,22 @@ export const LoginForm: React.FC<Props> = ({ volunteers, onLoginSuccess }) => {
               </div>
             </div>
 
+            {/* Acepto cookies y presentar información con fines de la empresa */}
+            <div className="p-3 bg-sky-50/60 border border-sky-100/90 rounded-xl">
+              <label className="flex items-start gap-2.5 cursor-pointer select-none group">
+                <input
+                  type="checkbox"
+                  required
+                  checked={acceptCookiesAndCorporateUse}
+                  onChange={(e) => setAcceptCookiesAndCorporateUse(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 text-blue-600 rounded-sm border-slate-300 focus:ring-blue-500 cursor-pointer shrink-0"
+                />
+                <span className="text-[11px] text-slate-600 group-hover:text-slate-900 leading-tight transition-colors">
+                  <span className="font-semibold text-slate-800">Acepto cookies</span> y autorizo de forma expresa a la Fundación ULEP a <span className="font-semibold text-blue-800">presentar y tratar información con fines legítimos y corporativos de la empresa</span>.
+                </span>
+              </label>
+            </div>
+
             <button
               type="submit"
               className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-md shadow-blue-600/20 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 via-sky-600 to-blue-700 hover:from-blue-700 hover:via-sky-700 hover:to-blue-800 focus:outline-hidden focus:ring-4 focus:ring-blue-500/20 transition-all cursor-pointer"
@@ -140,42 +178,6 @@ export const LoginForm: React.FC<Props> = ({ volunteers, onLoginSuccess }) => {
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
-
-          {/* Quick Demo Access Helpers with Soft Crystalline Borders */}
-          <div className="mt-8 pt-6 border-t border-sky-100/90 space-y-3">
-            <p className="text-xs font-bold text-sky-800 uppercase tracking-wider text-center">
-              Accesos rápidos para prueba:
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('admin', '123')}
-                className="flex items-center gap-2.5 p-2.5 rounded-2xl border border-sky-200/70 hover:border-blue-400 bg-sky-50/50 hover:bg-white text-left transition-all cursor-pointer shadow-2xs group"
-              >
-                <div className="w-8 h-8 rounded-xl bg-slate-900 text-sky-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div className="overflow-hidden">
-                  <p className="text-xs font-bold text-slate-900 leading-tight">Admin</p>
-                  <p className="text-[11px] text-sky-700 font-mono truncate">admin / 123</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('camila.rodriguez', '123')}
-                className="flex items-center gap-2.5 p-2.5 rounded-2xl border border-sky-200/70 hover:border-blue-400 bg-sky-50/50 hover:bg-white text-left transition-all cursor-pointer shadow-2xs group"
-              >
-                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <User className="w-4 h-4" />
-                </div>
-                <div className="overflow-hidden">
-                  <p className="text-xs font-bold text-slate-900 leading-tight">Trabajador</p>
-                  <p className="text-[11px] text-sky-700 font-mono truncate">camila.rodriguez / 123</p>
-                </div>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

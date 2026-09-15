@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Volunteer } from '../types';
-import { Download, Loader2, FileText, ShieldCheck, Lock } from 'lucide-react';
+import { Download, Loader2, FileText, ShieldCheck } from 'lucide-react';
 import html2canvas from 'html2canvas-pro';
 import { jsPDF } from 'jspdf';
 import { getFormalDateParts, cleanActualidadDate } from '../utils/dateUtils';
-import { encryptBinaryFile, triggerFileDownload, computeSHA256 } from '../utils/cryptoUtils';
+import { computeSHA256 } from '../utils/cryptoUtils';
 import logoImg from '../assets/LOGO.png';
 import firmaImg from '../assets/FIRMA.png';
 
@@ -20,7 +20,6 @@ export const ExperienceCertificate: React.FC<Props> = ({
   showCloseButton = false,
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isDownloadingEncrypted, setIsDownloadingEncrypted] = useState(false);
   const [digitalSealHash, setDigitalSealHash] = useState<string>('');
   const certificateRef = useRef<HTMLDivElement>(null);
 
@@ -157,68 +156,6 @@ Código de Verificación: ${volunteer.certificateCode}`;
     }
   };
 
-  const handleDownloadEncryptedPdf = async () => {
-    if (!certificateRef.current) return;
-    setIsDownloadingEncrypted(true);
-
-    try {
-      const element = certificateRef.current;
-      const cleanName = (volunteer.fullName || 'Colaborador')
-        .replace(/[^a-zA-Z0-9]/g, '_')
-        .replace(/_+/g, '_');
-      const filename = `Certificado_Laboral_${cleanName}.pdf`;
-
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        windowWidth: 1024,
-      });
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.98);
-
-      const pdf = new jsPDF({
-        unit: 'mm',
-        format: 'letter',
-        orientation: 'portrait',
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const margin = 8;
-      const printableWidth = pdfWidth - margin * 2;
-      const printableHeight = pdfHeight - margin * 2;
-
-      const imgAspectRatio = canvas.width / canvas.height;
-      let renderWidth = printableWidth;
-      let renderHeight = renderWidth / imgAspectRatio;
-
-      if (renderHeight > printableHeight) {
-        renderHeight = printableHeight;
-        renderWidth = renderHeight * imgAspectRatio;
-      }
-
-      const posX = margin + (printableWidth - renderWidth) / 2;
-      const posY = margin;
-
-      pdf.addImage(imgData, 'JPEG', posX, posY, renderWidth, renderHeight, undefined, 'FAST');
-
-      const pdfBlob = pdf.output('blob');
-      const { encryptedBlob, encryptedFilename } = await encryptBinaryFile(
-        pdfBlob,
-        filename
-      );
-
-      triggerFileDownload(encryptedBlob, encryptedFilename);
-    } catch (error) {
-      console.error('Error al generar PDF encriptado:', error);
-      alert('Error al generar certificado encriptado.');
-    } finally {
-      setIsDownloadingEncrypted(false);
-    }
-  };
-
   return (
     <div className="w-full flex flex-col items-center">
       {/* Action Bar (Hidden on print) */}
@@ -228,48 +165,18 @@ Código de Verificación: ${volunteer.certificateCode}`;
             <FileText className="w-4 h-4" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <p className="text-slate-900 font-bold text-sm">
-                Certificado de Experiencia y Laboral
-              </p>
-              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-md flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                Cifrado Activo
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 font-normal">
-              Documento oficial con firma digital, huella SHA-256 y código de validación
+            <p className="text-slate-900 font-bold text-sm">
+              Certificado de Experiencia y Laboral
             </p>
           </div>
         </div>
 
         <div className="flex items-center flex-wrap gap-2">
-          {/* Encrypted PDF Download */}
-          <button
-            type="button"
-            onClick={handleDownloadEncryptedPdf}
-            disabled={isDownloadingEncrypted || isDownloading}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-75 text-white text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-md shadow-emerald-700/20 cursor-pointer"
-            title="Descargar certificado en formato encriptado seguro (.pdf.ulepenc)"
-          >
-            {isDownloadingEncrypted ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Cifrando...</span>
-              </>
-            ) : (
-              <>
-                <Lock className="w-4 h-4 text-emerald-200" />
-                <span>PDF Cifrado (.ulepenc)</span>
-              </>
-            )}
-          </button>
-
           {/* Standard PDF Download */}
           <button
             type="button"
             onClick={handleDownloadPdf}
-            disabled={isDownloading || isDownloadingEncrypted}
+            disabled={isDownloading}
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 via-sky-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-75 text-white text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-md shadow-blue-600/20 cursor-pointer"
             title="Descargar certificado en formato PDF tradicional"
           >

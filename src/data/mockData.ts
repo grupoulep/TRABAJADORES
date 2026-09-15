@@ -36,6 +36,7 @@ export const INITIAL_VOLUNTEERS: Volunteer[] = [
     emergencyContactPhone: '+57 311 890 1234',
     birthDate: '12 de marzo de 2001',
     gender: 'Femenino',
+    cloudSpaceUrl: 'https://drive.google.com',
   },
   {
     id: 'vol-2',

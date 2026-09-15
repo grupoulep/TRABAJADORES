@@ -9,6 +9,7 @@ import {
 import { LoginForm } from './components/LoginForm';
 import { AdminDashboard } from './components/AdminDashboard';
 import { WorkerDashboard } from './components/WorkerDashboard';
+import { CookieConsentBanner } from './components/CookieConsentBanner';
 
 export default function App() {
   const [volunteers, setVolunteers] = useState<Volunteer[]>(() => getStoredVolunteers());
@@ -86,8 +87,7 @@ export default function App() {
   const currentVolunteerData =
     currentUser?.role === 'worker'
       ? volunteers.find((v) => v.id === currentUser.id || v.username.toLowerCase() === currentUser.username.toLowerCase()) ||
-        currentUser.volunteerData ||
-        volunteers[0]
+        currentUser.volunteerData
       : undefined;
 
   return (
@@ -119,6 +119,9 @@ export default function App() {
           onLogout={handleLogout}
         />
       )}
+
+      {/* Global Cookies & Company Purpose Information Banner */}
+      <CookieConsentBanner />
     </div>
   );
 }
