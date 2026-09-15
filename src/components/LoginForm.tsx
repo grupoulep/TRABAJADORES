@@ -1,16 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Volunteer, AuthUser } from '../types';
-import { Lock, User, HeartHandshake, ArrowRight, KeyRound, AlertCircle, Cookie, Building2 } from 'lucide-react';
+import { Lock, User, HeartHandshake, ArrowRight, KeyRound, AlertCircle, Cookie, Building2, UserPlus, Clock } from 'lucide-react';
 import logoImg from '../assets/LOGO.png';
 
 interface Props {
   volunteers: Volunteer[];
   onLoginSuccess: (user: AuthUser) => void;
+  onRegisterVolunteer?: (volunteer: Volunteer) => Promise<void> | void;
+  registrationEnabled?: boolean;
+  onNavigateToRegister?: () => void;
+  initialUsername?: string;
+  initialNotice?: string | null;
 }
 
-export const LoginForm: React.FC<Props> = ({ volunteers, onLoginSuccess }) => {
-  const [username, setUsername] = useState('');
+export const LoginForm: React.FC<Props> = ({
+  volunteers,
+  onLoginSuccess,
+  registrationEnabled = true,
+  onNavigateToRegister,
+  initialUsername = '',
+  initialNotice = null,
+}) => {
+  const [username, setUsername] = useState(initialUsername);
   const [password, setPassword] = useState('');
+  const [pendingNotice, setPendingNotice] = useState<string | null>(initialNotice);
+
+  useEffect(() => {
+    if (initialUsername) {
+      setUsername(initialUsername);
+    }
+  }, [initialUsername]);
+
+  useEffect(() => {
+    if (initialNotice) {
+      setPendingNotice(initialNotice);
+    }
+  }, [initialNotice]);
   const [acceptCookiesAndCorporateUse, setAcceptCookiesAndCorporateUse] = useState(() => {
     try {
       const stored = localStorage.getItem('ulep_cookie_corporate_consent');
@@ -24,6 +49,7 @@ export const LoginForm: React.FC<Props> = ({ volunteers, onLoginSuccess }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setPendingNotice(null);
 
     if (!acceptCookiesAndCorporateUse) {
       setError('Debe aceptar el uso de cookies y autorizar la presentación de información con fines de la empresa para continuar.');
@@ -58,20 +84,47 @@ export const LoginForm: React.FC<Props> = ({ volunteers, onLoginSuccess }) => {
       return;
     }
 
-    // Check Worker / Volunteer
+    // Check Worker / Volunteer (by username or document number)
+    const cleanDocUser = trimmedUser.replace(/\D/g, '');
     const matchedVolunteer = volunteers.find(
       (v) =>
-        v.username.toLowerCase() === trimmedUser &&
+        (v.username.toLowerCase() === trimmedUser ||
+         v.documentNumber.trim().toLowerCase() === trimmedUser ||
+         (cleanDocUser && v.documentNumber.replace(/\D/g, '') === cleanDocUser)) &&
         (v.password ? v.password === trimmedPass : trimmedPass === '123')
     );
 
     if (matchedVolunteer) {
+      // Check if volunteer is pending approval by the admin
+      if (matchedVolunteer.status === 'Pendiente') {
+        setPendingNotice(
+          `Hola ${matchedVolunteer.fullName}. Tu solicitud de registro se encuentra PENDIENTE DE HABILITACIÓN. El Administrador de la Fundación ULEP debe habilitar tu cuenta antes de que puedas ingresar.`
+        );
+        return;
+      }
+
       onLoginSuccess({
         id: matchedVolunteer.id,
         username: matchedVolunteer.username,
         role: 'worker',
         volunteerData: matchedVolunteer,
       });
+      return;
+    }
+
+    // Check if user exists but has pending status with wrong password
+    const userPending = volunteers.find(
+      (v) =>
+        (v.username.toLowerCase() === trimmedUser ||
+         v.documentNumber.trim().toLowerCase() === trimmedUser ||
+         (cleanDocUser && v.documentNumber.replace(/\D/g, '') === cleanDocUser)) &&
+        v.status === 'Pendiente'
+    );
+
+    if (userPending) {
+      setPendingNotice(
+        `La cédula ${userPending.documentNumber} (${userPending.fullName}) está registrada pero se encuentra PENDIENTE DE HABILITACIÓN por el Administrador.`
+      );
       return;
     }
 
@@ -113,10 +166,23 @@ export const LoginForm: React.FC<Props> = ({ volunteers, onLoginSuccess }) => {
             </div>
           )}
 
+          {pendingNotice && (
+            <div className="mb-5 p-3.5 rounded-2xl bg-amber-50/95 border border-amber-300 text-amber-900 text-xs flex items-start gap-2.5 shadow-sm">
+              <Clock className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+              <div className="space-y-1">
+                <p className="font-bold">Cuenta Pendiente de Habilitación</p>
+                <p className="leading-relaxed text-amber-800">{pendingNotice}</p>
+                <p className="text-[11px] text-amber-700 font-semibold pt-1">
+                  El Administrador habilitará tu acceso desde el panel principal.
+                </p>
+              </div>
+            </div>
+          )}
+
           <form action="#" method="post" className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                Usuario
+                Cédula de ciudadanía
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-sky-600/70">
@@ -128,7 +194,7 @@ export const LoginForm: React.FC<Props> = ({ volunteers, onLoginSuccess }) => {
                   autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Ej. ADMINIULEP o camila.rodriguez"
+                  placeholder="Cédula de ciudadanía"
                   className="block w-full pl-10 pr-3.5 py-2.5 text-sm bg-white/75 border border-sky-200/80 rounded-xl focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 focus:outline-hidden transition-all placeholder:text-slate-400 text-slate-900"
                 />
               </div>
@@ -178,6 +244,19 @@ export const LoginForm: React.FC<Props> = ({ volunteers, onLoginSuccess }) => {
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
+
+          {/* Registration Link */}
+          {registrationEnabled && (
+            <div className="mt-5 pt-4 border-t border-slate-200/60 text-center">
+              <button
+                type="button"
+                onClick={onNavigateToRegister}
+                className="text-xs sm:text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer bg-transparent border-0 p-0"
+              >
+                Registrar
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

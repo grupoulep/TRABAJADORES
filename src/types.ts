@@ -22,7 +22,9 @@ export interface Volunteer {
   issueCity?: string; // Ciudad de expedición del certificado
   issueDate?: string; // Fecha de expedición del certificado (ej. '14 de septiembre de 2024')
   certificateCode: string;
-  status: 'Activo' | 'Finalizado';
+  status: 'Activo' | 'Finalizado' | 'Pendiente';
+  isSelfRegistered?: boolean; // Registrado por el formulario público de registro
+  registrationDate?: string; // Fecha en la que solicitó el registro
   signatoryName?: string; // Nombre de quien firma
   signatoryRole?: string; // Cargo de quien firma
   signatoryDocument?: string; // Documento de identidad de quien firma

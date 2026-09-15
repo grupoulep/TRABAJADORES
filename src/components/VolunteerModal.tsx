@@ -698,7 +698,8 @@ export const VolunteerModal: React.FC<Props> = ({
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as 'Activo' | 'Finalizado' })}
                   className="w-full px-3.5 py-2.5 text-sm bg-white border border-sky-200 rounded-xl focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 focus:outline-hidden text-slate-900 transition-all font-medium"
                 >
-                  <option value="Activo">Activo (Periodo vigente)</option>
+                  <option value="Activo">Activo (Habilitado / Periodo vigente)</option>
+                  <option value="Pendiente">Pendiente (Requiere habilitación)</option>
                   <option value="Finalizado">Finalizado (Periodo culminado)</option>
                 </select>
               </div>

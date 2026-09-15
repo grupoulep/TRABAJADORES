@@ -5,8 +5,10 @@ import {
   testFirebaseConnection,
   subscribeToVolunteers,
   seedInitialVolunteersIfEmpty,
+  saveVolunteerToFirebase,
 } from './lib/firebase';
 import { LoginForm } from './components/LoginForm';
+import { RegistrationDashboard } from './components/RegistrationDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { WorkerDashboard } from './components/WorkerDashboard';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
@@ -14,6 +16,8 @@ import { CookieConsentBanner } from './components/CookieConsentBanner';
 export default function App() {
   const [volunteers, setVolunteers] = useState<Volunteer[]>(() => getStoredVolunteers());
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
+  const [lastRegisteredUser, setLastRegisteredUser] = useState<{ username: string; message: string } | null>(null);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
     try {
       const savedUser = localStorage.getItem('portal_voluntarios_session');
@@ -60,6 +64,35 @@ export default function App() {
     };
   }, []);
 
+  const [registrationEnabled, setRegistrationEnabled] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('ulep_registration_enabled');
+      return stored !== null ? JSON.parse(stored) : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const handleToggleRegistration = (enabled: boolean) => {
+    setRegistrationEnabled(enabled);
+    try {
+      localStorage.setItem('ulep_registration_enabled', JSON.stringify(enabled));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleRegisterVolunteer = async (newVol: Volunteer) => {
+    const updated = [newVol, ...volunteers];
+    setVolunteers(updated);
+    saveStoredVolunteers(updated);
+    try {
+      await saveVolunteerToFirebase(newVol);
+    } catch (err) {
+      console.error('Error guardando nuevo voluntario en Firebase:', err);
+    }
+  };
+
   const handleUpdateVolunteers = (updated: Volunteer[]) => {
     setVolunteers(updated);
     saveStoredVolunteers(updated);
@@ -97,10 +130,29 @@ export default function App() {
       <div className="fixed bottom-10 right-10 w-[30rem] h-[30rem] bg-blue-400/15 rounded-full blur-3xl pointer-events-none -z-10" />
       <div className="fixed top-1/3 right-1/4 w-80 h-80 bg-indigo-300/15 rounded-full blur-3xl pointer-events-none -z-10" />
 
-      {!currentUser && (
+      {!currentUser && authView === 'login' && (
         <LoginForm
           volunteers={volunteers}
           onLoginSuccess={handleLogin}
+          registrationEnabled={registrationEnabled}
+          onNavigateToRegister={() => setAuthView('register')}
+          initialUsername={lastRegisteredUser?.username || ''}
+          initialNotice={lastRegisteredUser?.message || null}
+        />
+      )}
+
+      {!currentUser && authView === 'register' && (
+        <RegistrationDashboard
+          onBackToLogin={() => setAuthView('login')}
+          existingVolunteers={volunteers}
+          registrationEnabled={registrationEnabled}
+          onRegisterSuccess={async (newVol) => {
+            await handleRegisterVolunteer(newVol);
+            setLastRegisteredUser({
+              username: newVol.documentNumber,
+              message: `¡Registro enviado exitosamente para ${newVol.fullName}! Tu cuenta con documento ${newVol.documentNumber} se encuentra en espera de habilitación por el Administrador.`,
+            });
+          }}
         />
       )}
 
@@ -110,6 +162,8 @@ export default function App() {
           onUpdateVolunteers={handleUpdateVolunteers}
           onLogout={handleLogout}
           isFirebaseConnected={isFirebaseConnected}
+          registrationEnabled={registrationEnabled}
+          onToggleRegistration={handleToggleRegistration}
         />
       )}
 

@@ -1,4 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 import {
   initializeFirestore,
   getFirestore,
@@ -31,13 +32,15 @@ export const firebaseConfig = {
 // Initialize Firebase App singleton
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Firestore with custom database ID and auto-detect long polling for robust cloud connectivity
+export const auth = getAuth(app);
+
+// Initialize Firestore with custom database ID and force long polling to prevent unavailable/WebSocket streaming connection errors in cloud container/iframe environments
 let firestoreInstance: Firestore;
 try {
   firestoreInstance = initializeFirestore(
     app,
     {
-      experimentalAutoDetectLongPolling: true,
+      experimentalForceLongPolling: true,
     },
     firebaseConfig.firestoreDatabaseId || undefined
   );
@@ -48,6 +51,55 @@ try {
 }
 
 export const db: Firestore = firestoreInstance;
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+  const errMessage = error instanceof Error ? error.message : String(error);
+  const errInfo: FirestoreErrorInfo = {
+    error: errMessage,
+    authInfo: {
+      userId: auth.currentUser?.uid || null,
+      email: auth.currentUser?.email || null,
+      emailVerified: auth.currentUser?.emailVerified || null,
+      isAnonymous: auth.currentUser?.isAnonymous || null,
+      tenantId: auth.currentUser?.tenantId || null,
+      providerInfo:
+        auth.currentUser?.providerData?.map((p) => ({
+          providerId: p.providerId,
+          email: p.email,
+        })) || [],
+    },
+    operationType,
+    path,
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 const VOLUNTEERS_COLLECTION = 'volunteers';
 
@@ -93,17 +145,13 @@ export async function encryptedDocToVolunteer(raw: Record<string, unknown>): Pro
 export async function testFirebaseConnection(): Promise<boolean> {
   try {
     const testDocRef = doc(db, 'test', 'connection');
-    const checkPromise = getDocFromServer(testDocRef);
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Connection check timeout - using resilient mode')), 3500)
-    );
-    await Promise.race([checkPromise, timeoutPromise]);
+    await getDocFromServer(testDocRef);
     console.log('Firebase Firestore connection verified.');
     return true;
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
-    if (msg.includes('offline') || msg.includes('unavailable') || msg.includes('timeout')) {
-      console.info('Firestore operating in resilient offline/online synchronization mode.');
+    if (msg.includes('offline') || msg.includes('unavailable') || msg.includes('the client is offline')) {
+      console.info('Firestore operating in resilient synchronization mode (local cache active).');
     } else {
       console.log('Firebase connection ready.');
     }
@@ -135,7 +183,11 @@ export function subscribeToVolunteers(
       }
     },
     (err) => {
-      console.error('Firestore subscription error:', err);
+      const msg = err.message || '';
+      if (msg.includes('permission-denied') || msg.includes('Missing or insufficient permissions')) {
+        handleFirestoreError(err, OperationType.LIST, VOLUNTEERS_COLLECTION);
+      }
+      console.info('Firestore subscription status:', err.message);
       if (onError) onError(err);
     }
   );
@@ -153,8 +205,12 @@ export async function getVolunteersFromFirebase(): Promise<Volunteer[]> {
       promises.push(encryptedDocToVolunteer(docSnap.data() as Record<string, unknown>));
     });
     return await Promise.all(promises);
-  } catch (err) {
-    console.error('Error fetching volunteers from Firebase:', err);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('permission-denied') || msg.includes('Missing or insufficient permissions')) {
+      handleFirestoreError(err, OperationType.GET, VOLUNTEERS_COLLECTION);
+    }
+    console.warn('Firestore getVolunteers status:', msg);
     return [];
   }
 }
@@ -163,17 +219,33 @@ export async function getVolunteersFromFirebase(): Promise<Volunteer[]> {
  * Save or update a single volunteer in Firestore with AES-256-GCM encryption
  */
 export async function saveVolunteerToFirebase(volunteer: Volunteer): Promise<void> {
-  const docRef = doc(db, VOLUNTEERS_COLLECTION, volunteer.id);
-  const encryptedDocData = await volunteerToEncryptedDoc(volunteer);
-  await setDoc(docRef, encryptedDocData, { merge: true });
+  try {
+    const docRef = doc(db, VOLUNTEERS_COLLECTION, volunteer.id);
+    const encryptedDocData = await volunteerToEncryptedDoc(volunteer);
+    await setDoc(docRef, encryptedDocData, { merge: true });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('permission-denied') || msg.includes('Missing or insufficient permissions')) {
+      handleFirestoreError(err, OperationType.WRITE, `${VOLUNTEERS_COLLECTION}/${volunteer.id}`);
+    }
+    throw err;
+  }
 }
 
 /**
  * Delete a volunteer document from Firestore
  */
 export async function deleteVolunteerFromFirebase(volunteerId: string): Promise<void> {
-  const docRef = doc(db, VOLUNTEERS_COLLECTION, volunteerId);
-  await deleteDoc(docRef);
+  try {
+    const docRef = doc(db, VOLUNTEERS_COLLECTION, volunteerId);
+    await deleteDoc(docRef);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('permission-denied') || msg.includes('Missing or insufficient permissions')) {
+      handleFirestoreError(err, OperationType.DELETE, `${VOLUNTEERS_COLLECTION}/${volunteerId}`);
+    }
+    throw err;
+  }
 }
 
 /**

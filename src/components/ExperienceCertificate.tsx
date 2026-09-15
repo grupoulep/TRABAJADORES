@@ -120,33 +120,18 @@ Código de Verificación: ${volunteer.certificateCode}`;
 
       const imgData = canvas.toDataURL('image/jpeg', 0.98);
 
-      // Letter format: 215.9mm x 279.4mm
+      // Letter format: 215.9mm x 279.4mm (Tamaño Carta)
       const pdf = new jsPDF({
         unit: 'mm',
         format: 'letter',
         orientation: 'portrait',
       });
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const pdfWidth = pdf.internal.pageSize.getWidth(); // 215.9 mm
+      const pdfHeight = pdf.internal.pageSize.getHeight(); // 279.4 mm
 
-      const margin = 8;
-      const printableWidth = pdfWidth - margin * 2;
-      const printableHeight = pdfHeight - margin * 2;
-
-      const imgAspectRatio = canvas.width / canvas.height;
-      let renderWidth = printableWidth;
-      let renderHeight = renderWidth / imgAspectRatio;
-
-      if (renderHeight > printableHeight) {
-        renderHeight = printableHeight;
-        renderWidth = renderHeight * imgAspectRatio;
-      }
-
-      const posX = margin + (printableWidth - renderWidth) / 2;
-      const posY = margin;
-
-      pdf.addImage(imgData, 'JPEG', posX, posY, renderWidth, renderHeight, undefined, 'FAST');
+      // Full-bleed fit to exact Letter page (the element itself contains its own 20mm-25mm margins via CSS padding)
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
       pdf.save(filename);
     } catch (error) {
       console.error('Error al generar y descargar PDF:', error);
@@ -159,7 +144,7 @@ Código de Verificación: ${volunteer.certificateCode}`;
   return (
     <div className="w-full flex flex-col items-center">
       {/* Action Bar (Hidden on print) */}
-      <div className="print:hidden w-full max-w-3xl flex flex-wrap items-center justify-between gap-3 mb-6 bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-sky-200/80 shadow-xs shadow-blue-900/5">
+      <div className="print:hidden w-full max-w-[816px] flex flex-wrap items-center justify-between gap-3 mb-6 bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-sky-200/80 shadow-xs shadow-blue-900/5">
         <div className="flex items-center gap-2.5 text-slate-800 text-sm font-semibold">
           <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-2xs">
             <FileText className="w-4 h-4" />
@@ -178,7 +163,7 @@ Código de Verificación: ${volunteer.certificateCode}`;
             onClick={handleDownloadPdf}
             disabled={isDownloading}
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 via-sky-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-75 text-white text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-md shadow-blue-600/20 cursor-pointer"
-            title="Descargar certificado en formato PDF tradicional"
+            title="Descargar certificado en formato PDF tamaño Carta (8.5 × 11 pulgadas)"
           >
             {isDownloading ? (
               <>
@@ -205,17 +190,22 @@ Código de Verificación: ${volunteer.certificateCode}`;
         </div>
       </div>
 
-      {/* Certificate Sheet - Standard Word Document Style (Clean, White, Professional) */}
+      {/* Certificate Sheet - Tamaño Carta Oficial (8.5 × 11 in / 215.9 × 279.4 mm) */}
       <div
         ref={certificateRef}
         id={`certificate-${volunteer.id}`}
-        className="w-full max-w-3xl bg-white border border-slate-300 shadow-xl print:shadow-none print:border-none p-10 sm:p-16 md:p-20 text-slate-900 font-sans print:p-0 print:m-0 print:max-w-none"
-        style={{ minHeight: '1050px' }}
+        className="w-full max-w-[816px] bg-white border border-slate-300 shadow-xl print:shadow-none print:border-none p-10 sm:p-14 text-slate-900 font-sans print:p-12 print:m-0 print:max-w-none flex flex-col justify-between"
+        style={{
+          width: '100%',
+          maxWidth: '816px',
+          minHeight: '1056px',
+          boxSizing: 'border-box',
+        }}
       >
         {/* Document Header (Letterhead) */}
-        <div className="text-center pb-6 mb-8 border-b border-slate-200">
-          <div className="flex justify-center mb-4">
-            <div className="w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center">
+        <div className="text-center pb-5 mb-6 border-b border-slate-200">
+          <div className="flex justify-center mb-3">
+            <div className="w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
               <img
                 src={logoImg}
                 alt="Logo Institucional Fundación ULEP"
@@ -244,21 +234,21 @@ Código de Verificación: ${volunteer.certificateCode}`;
         </div>
 
         {/* Document Formal Heading */}
-        <div className="text-center my-8">
+        <div className="text-center my-6">
           <h1 className="text-xl sm:text-2xl font-bold uppercase tracking-widest text-slate-900 font-serif">
             CERTIFICACIÓN LABORAL Y DE EXPERIENCIA
           </h1>
         </div>
 
         {/* Addressee */}
-        <div className="mb-6">
+        <div className="mb-5">
           <p className="text-sm font-bold uppercase tracking-wider text-slate-900 font-serif">
             A QUIEN PUEDA INTERESAR:
           </p>
         </div>
 
         {/* Body of Certificate - Exact template requested by user with automatic variables */}
-        <div className="space-y-5 text-slate-800 leading-relaxed text-sm sm:text-base text-justify font-serif">
+        <div className="space-y-4 text-slate-800 leading-relaxed text-sm sm:text-[15px] text-justify font-serif">
           {/* Paragraph 1 */}
           <p className="leading-relaxed">
             Que el(la) señor(a){' '}
@@ -320,7 +310,7 @@ Código de Verificación: ${volunteer.certificateCode}`;
           </p>
 
           {/* Paragraph 5 */}
-          <p className="leading-relaxed pt-2">
+          <p className="leading-relaxed pt-1">
             Para constancia de lo anterior y a solicitud del interesado(a), se expide la presente certificación en la ciudad de{' '}
             <strong className="text-slate-950 font-semibold">
               {ciudadExpedicionCertificado}
@@ -342,7 +332,7 @@ Código de Verificación: ${volunteer.certificateCode}`;
         </div>
 
         {/* Signatures & Formal Verification Section */}
-        <div className="mt-16 pt-10 border-t border-slate-200">
+        <div className="mt-12 pt-8 border-t border-slate-200">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-end">
             <div>
               {/* Signature Line */}
@@ -350,7 +340,7 @@ Código de Verificación: ${volunteer.certificateCode}`;
                 <img
                   src={firmaImg}
                   alt="Firma Jerson Stive López Rengifo"
-                  className="h-28 sm:h-36 w-auto max-w-[300px] object-contain mx-auto -mb-6 relative z-10 mix-blend-multiply select-none pointer-events-none"
+                  className="h-24 sm:h-32 w-auto max-w-[280px] object-contain mx-auto -mb-5 relative z-10 mix-blend-multiply select-none pointer-events-none"
                   onError={(e) => {
                     if (e.currentTarget.src !== `${window.location.origin}${import.meta.env.BASE_URL}FIRMA.png`) {
                       e.currentTarget.src = `${import.meta.env.BASE_URL}FIRMA.png`;
